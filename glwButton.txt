@@ -1,0 +1,28 @@
+<button id="copyButton">Copy Text</button>
+
+<script type="text/javascript">
+    document.getElementById("copyButton").addEventListener("click", function() {
+        // Select the dynamic text content by their element IDs or class names
+        var receiver = document.querySelector('#SPFieldChoice.ms-formbody').innerText.trim(); // Receiver value
+        var instructionElements = document.querySelectorAll('#SPFieldNote .ExternalClassF2A0450D9E7A4CC58E9F2DE194D83F09 p'); // Instruction paragraphs
+        var originator = document.querySelector('#SPFieldUser.ms-formbody').innerText.trim(); // Originator value
+
+        // Combine multiple instructions, if any
+        var instructions = "";
+        instructionElements.forEach(function(instruction) {
+            instructions += instruction.innerText.trim() + "\n";
+        });
+
+        // Construct the text string to be copied
+        var text = `Receiver: ${receiver}\nInstruction for WH and FPA/LAB: ${instructions}\nOriginator/Contact: ${originator}`;
+
+        // Copy the text
+        var tempInput = document.createElement("textarea");
+        tempInput.value = text.trim();
+        document.body.appendChild(tempInput);
+        tempInput.select();
+        document.execCommand("copy");
+        document.body.removeChild(tempInput);
+        alert("Copied to clipboard!");
+    });
+</script>
