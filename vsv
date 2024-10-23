@@ -1,0 +1,232 @@
+<%@ Page Language="VB" Trace="False" MasterPageFile="~/Fullscreen.master" AutoEventWireup="false" CodeFile="ReturnPallets.aspx.vb" Inherits="ReturnPallets" %>
+<asp:Content ID="Content1" ContentPlaceHolderID="cphBody" Runat="Server">
+    <div class="container">
+        <div class="row">
+            <div class="col-md-12">
+                <h2>Return External Pallets</h2>
+                <asp:Label ID="lblStatus" runat="server" CssClass="status-message"></asp:Label>
+            </div>
+        </div>
+        
+        <div class="row mt-3">
+            <div class="col-md-6">
+                <div class="form-group">
+                    <asp:Label ID="lblScan" runat="server" Text="Scan Pallet ID:"></asp:Label>
+                    <asp:TextBox ID="txtScanPallet" runat="server" CssClass="form-control" AutoPostBack="true" OnTextChanged="txtScanPallet_TextChanged"></asp:TextBox>
+                </div>
+            </div>
+        </div>
+
+        <div class="row mt-3">
+            <div class="col-md-12">
+                <asp:GridView ID="gvScannedPallets" runat="server" AutoGenerateColumns="False" 
+                    CssClass="table table-striped" EmptyDataText="No pallets scanned">
+                    <Columns>
+                        <asp:BoundField DataField="ID_EX" HeaderText="External ID" />
+                        <asp:BoundField DataField="PALLET_ID" HeaderText="Pallet ID" />
+                        <asp:BoundField DataField="PACK_ORDER_NUMBER" HeaderText="Pack Order" />
+                        <asp:BoundField DataField="PALLET_NUMBER" HeaderText="Pallet #" />
+                        <asp:BoundField DataField="SHIPMENT_ID" HeaderText="Shipment ID" />
+                        <asp:TemplateField HeaderText="Actions">
+                            <ItemTemplate>
+                                <asp:Button ID="btnRemove" runat="server" Text="Remove" 
+                                    CommandName="Remove" CommandArgument='<%# Eval("PALLET_ID") %>'
+                                    OnCommand="btnRemove_Command" CssClass="btn btn-danger btn-sm" />
+                            </ItemTemplate>
+                        </asp:TemplateField>
+                    </Columns>
+                </asp:GridView>
+            </div>
+        </div>
+
+        <div class="row mt-3">
+            <div class="col-md-12">
+                <asp:Button ID="btnConfirmReturn" runat="server" Text="Confirm Return" 
+                    CssClass="btn btn-primary" OnClick="btnConfirmReturn_Click" />
+                <asp:Button ID="btnCancel" runat="server" Text="Cancel" 
+                    CssClass="btn btn-secondary" OnClick="btnCancel_Click" />
+            </div>
+        </div>
+    </div>
+</asp:Content>
+
+
+Imports System.Data
+
+Partial Class ReturnPallets
+    Inherits System.Web.UI.Page
+    
+    Private ReadOnly Property ScannedPallets As DataTable
+        Get
+            If Session("ScannedPallets") Is Nothing Then
+                Dim dt As New DataTable()
+                dt.Columns.Add("ID_EX", GetType(Integer))
+                dt.Columns.Add("PALLET_ID", GetType(String))
+                dt.Columns.Add("PACK_ORDER_NUMBER", GetType(Integer))
+                dt.Columns.Add("PALLET_NUMBER", GetType(Integer))
+                dt.Columns.Add("SHIPMENT_ID", GetType(Integer))
+                Session("ScannedPallets") = dt
+            End If
+            Return DirectCast(Session("ScannedPallets"), DataTable)
+        End Get
+    End Property
+
+    Protected Sub Page_Load(ByVal sender As Object, ByVal e As System.EventArgs) Handles Me.Load
+        If Not IsPostBack Then
+            ValidateUser()
+            BindGrid()
+        End If
+    End Sub
+
+    Private Sub ValidateUser()
+        If Session("Username") Is Nothing Then
+            Response.Redirect("default.aspx")
+        End If
+    End Sub
+
+    Protected Sub txtScanPallet_TextChanged(sender As Object, e As EventArgs)
+        Try
+            Dim palletId As String = txtScanPallet.Text.Trim()
+            If String.IsNullOrEmpty(palletId) Then Return
+
+            If IsPalletAlreadyScanned(palletId) Then
+                ShowError("Pallet already scanned")
+                Return
+            End If
+
+            Dim palletInfo = GetExternalPalletInfo(palletId)
+            If palletInfo Is Nothing Then
+                ShowError("Pallet not found in external warehouse")
+                Return
+            End If
+
+            AddPalletToScanned(palletInfo)
+            txtScanPallet.Text = String.Empty
+            BindGrid()
+            ShowSuccess("Pallet scanned successfully")
+
+        Catch ex As Exception
+            ShowError("Error processing scan: " & ex.Message)
+        End Try
+    End Sub
+
+    Private Function IsPalletAlreadyScanned(palletId As String) As Boolean
+        Return ScannedPallets.Select("PALLET_ID = '" & palletId & "'").Length > 0
+    End Function
+
+    Private Function GetExternalPalletInfo(palletId As String) As DataRow
+        Dim cmd As New DB()
+        Dim sql As String = "SELECT ID_EX, PALLET_ID, PACK_ORDER_NUMBER, PALLET_NUMBER, SHIPMENT_ID " & _
+                           "FROM EXTERNALPALLETS WHERE PALLET_ID = :palletId"
+        
+        Using conn As New OracleConnection(GetConnectionString())
+            Using command As New OracleCommand(sql, conn)
+                command.Parameters.Add(":palletId", OracleDbType.Varchar2).Value = palletId
+                Dim dt As DataTable = cmd.SQLSelect(GetConnectionString(), sql)
+                If dt.Rows.Count > 0 Then
+                    Return dt.Rows(0)
+                End If
+            End Using
+        End Using
+        Return Nothing
+    End Function
+
+    Private Sub AddPalletToScanned(palletInfo As DataRow)
+        Dim newRow = ScannedPallets.NewRow()
+        newRow("ID_EX") = palletInfo("ID_EX")
+        newRow("PALLET_ID") = palletInfo("PALLET_ID")
+        newRow("PACK_ORDER_NUMBER") = palletInfo("PACK_ORDER_NUMBER")
+        newRow("PALLET_NUMBER") = palletInfo("PALLET_NUMBER")
+        newRow("SHIPMENT_ID") = palletInfo("SHIPMENT_ID")
+        ScannedPallets.Rows.Add(newRow)
+    End Sub
+
+    Protected Sub btnConfirmReturn_Click(sender As Object, e As EventArgs)
+        Try
+            If ScannedPallets.Rows.Count = 0 Then
+                ShowError("No pallets scanned")
+                Return
+            End If
+
+            Using conn As New OracleConnection(GetConnectionString())
+                conn.Open()
+                Using transaction As OracleTransaction = conn.BeginTransaction()
+                    Try
+                        For Each row As DataRow In ScannedPallets.Rows
+                            InsertReturnedPallet(conn, transaction, row)
+                        Next
+                        transaction.Commit()
+                        ClearScannedPallets()
+                        ShowSuccess("Pallets returned successfully")
+                    Catch ex As Exception
+                        transaction.Rollback()
+                        Throw
+                    End Try
+                End Using
+            End Using
+
+        Catch ex As Exception
+            ShowError("Error confirming return: " & ex.Message)
+        End Try
+    End Sub
+
+    Private Sub InsertReturnedPallet(conn As OracleConnection, transaction As OracleTransaction, palletInfo As DataRow)
+        Dim sql As String = "INSERT INTO RETURNEDPALLETS (ID_EXRET, ID_EX, LOADDATE, PACK_ORDER_NUMBER, " & _
+                           "PALLET_NUMBER, SHIPMENT_ID, PALLET_ID) VALUES " & _
+                           "(SEQ_RETURNEDPALLETS.NEXTVAL, :idEx, SYSDATE, :packOrder, :palletNum, :shipId, :palletId)"
+
+        Using cmd As New OracleCommand(sql, conn, transaction)
+            cmd.Parameters.Add(":idEx", OracleDbType.Int32).Value = palletInfo("ID_EX")
+            cmd.Parameters.Add(":packOrder", OracleDbType.Int32).Value = palletInfo("PACK_ORDER_NUMBER")
+            cmd.Parameters.Add(":palletNum", OracleDbType.Int32).Value = palletInfo("PALLET_NUMBER")
+            cmd.Parameters.Add(":shipId", OracleDbType.Int32).Value = palletInfo("SHIPMENT_ID")
+            cmd.Parameters.Add(":palletId", OracleDbType.Varchar2).Value = palletInfo("PALLET_ID")
+            cmd.ExecuteNonQuery()
+        End Using
+    End Sub
+
+    Protected Sub btnRemove_Command(sender As Object, e As CommandEventArgs)
+        If e.CommandName = "Remove" Then
+            Dim palletId As String = e.CommandArgument.ToString()
+            RemoveScannedPallet(palletId)
+            BindGrid()
+            ShowSuccess("Pallet removed from scan list")
+        End If
+    End Sub
+
+    Private Sub RemoveScannedPallet(palletId As String)
+        Dim rows() As DataRow = ScannedPallets.Select("PALLET_ID = '" & palletId & "'")
+        If rows.Length > 0 Then
+            ScannedPallets.Rows.Remove(rows(0))
+        End If
+    End Sub
+
+    Protected Sub btnCancel_Click(sender As Object, e As EventArgs)
+        ClearScannedPallets()
+        Response.Redirect("default.aspx")
+    End Sub
+
+    Private Sub ClearScannedPallets()
+        Session("ScannedPallets") = Nothing
+        BindGrid()
+    End Sub
+
+    Private Sub BindGrid()
+        gvScannedPallets.DataSource = ScannedPallets
+        gvScannedPallets.DataBind()
+    End Sub
+
+    Private Sub ShowError(message As String)
+        lblStatus.CssClass = "alert alert-danger"
+        lblStatus.Text = message
+    End Sub
+
+    Private Sub ShowSuccess(message As String)
+        lblStatus.CssClass = "alert alert-success"
+        lblStatus.Text = message
+    End Sub
+
+    Private Function GetConnectionString() As String
+        Return ConfigurationManager.ConnectionStrings("ConnShipTracking").ConnectionString
+    End Function
+End Class
