@@ -1,0 +1,65 @@
+Imports System.Data
+Imports System.Data.SqlClient
+Imports System.Data.OracleClient
+
+Public Class PalletTrackingDAL
+    Private ReadOnly _sqlConnectionString As String
+    Private ReadOnly _oracleConnectionString As String
+
+    Public Sub New()
+        _sqlConnectionString = ConfigurationManager.AppSettings("SQLConnectionString")
+        _oracleConnectionString = ConfigurationManager.AppSettings("ConnectionStringShipmentTracking")
+    End Sub
+
+    ''' <summary>
+    ''' Gets all scanned pallets for a specific shipment
+    ''' </summary>
+    Public Function GetScannedPallets(ByVal shipmentId As String) As DataTable
+        Dim dt As New DataTable()
+        
+        Using conn As New SqlConnection(_sqlConnectionString)
+            Dim cmd As New SqlCommand("SELECT PalletID, PackOrderNo, ScanTime " & _
+                                    "FROM ShipmentTracking " & _
+                                    "WHERE ShipmentID = @ShipmentID " & _
+                                    "ORDER BY PalletID", conn)
+            
+            cmd.Parameters.AddWithValue("@ShipmentID", shipmentId)
+            
+            Try
+                conn.Open()
+                Using reader As SqlDataReader = cmd.ExecuteReader()
+                    dt.Load(reader)
+                End Using
+            Catch ex As Exception
+                Throw New Exception("Error getting scanned pallets: " & ex.Message, ex)
+            End Try
+        End Using
+        
+        Return dt
+    End Function
+
+    ''' <summary>
+    ''' Gets total number of pallets for a shipment from Oracle
+    ''' </summary>
+    Public Function GetTotalPalletsForShipment(ByVal shipmentId As String) As Integer
+        Using conn As New OracleConnection(_oracleConnectionString)
+            Dim cmd As New OracleCommand( _
+                "SELECT TOTALPALLETS " & _
+                "FROM SHIPMENTTRACKING " & _
+                "WHERE BAY = :ShipmentID AND ACTIVE = '1'", conn)
+            
+            cmd.Parameters.Add(New OracleParameter("ShipmentID", shipmentId))
+            
+            Try
+                conn.Open()
+                Dim result As Object = cmd.ExecuteScalar()
+                If result IsNot Nothing AndAlso Not IsDBNull(result) Then
+                    Return Convert.ToInt32(result)
+                End If
+                Return 0
+            Catch ex As Exception
+                Throw New Exception("Error getting total pallets: " & ex.Message, ex)
+            End Try
+        End Using
+    End Function
+End Class
