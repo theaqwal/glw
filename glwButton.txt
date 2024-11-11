@@ -1,110 +1,106 @@
-'PalletDetails.aspx
-<%@ Page Language="VB" AutoEventWireup="true" CodeFile="PalletDetails.aspx.vb" Inherits="PalletDetails" %>
-<!DOCTYPE html>
-<html xmlns="http://www.w3.org/1999/xhtml">
-<head runat="server">
-    <title>Pallet Details</title>
-    <link href="Styles.css" rel="stylesheet" type="text/css" />
-    <meta http-equiv="refresh" content="30">
-</head>
-<body>
-    <form id="form1" runat="server">
-        <div class="pallet-details-container">
-            <h1>Shipment Details - Bay <asp:Label ID="lblBayNumber" runat="server" /></h1>
+'TestPalletTrackingDAL
+Option Strict On
+Option Explicit On
+
+Imports System.Data
+Imports System.Data.SqlClient
+
+Public Class TestPalletTrackingDAL
+    Inherits PalletTrackingDAL
+
+    ' Override to return test data instead of hitting database
+    Public Overrides Function GetScannedPallets(ByVal shipmentId As String) As DataTable
+        Dim dt As New DataTable()
+        dt.Columns.Add("PalletID", GetType(String))
+        dt.Columns.Add("PackOrderNo", GetType(String))
+        dt.Columns.Add("ScanTime", GetType(DateTime))
+
+        ' Add test data
+        dt.Rows.Add("01", "TEST_ORDER_1", DateTime.Now.AddMinutes(-30))
+        dt.Rows.Add("03", "TEST_ORDER_2", DateTime.Now.AddMinutes(-15))
+
+        Return dt
+    End Function
+
+    Public Overrides Function GetTotalPalletsForShipment(ByVal shipmentId As String) As Integer
+        ' Return test value
+        Return 5
+    End Function
+End Class
+
+
+'editnormalDAL
+
+Public Class PalletTrackingDAL
+    Private ReadOnly _sqlConnectionString As String
+    Private ReadOnly _oracleConnectionString As String
+
+    Public Sub New()
+        _sqlConnectionString = ConfigurationManager.AppSettings("SQLConnectionString")
+        _oracleConnectionString = ConfigurationManager.AppSettings("ConnectionStringShipmentTracking")
+    End Sub
+
+    ' Make methods overridable
+    Public Overridable Function GetScannedPallets(ByVal shipmentId As String) As DataTable
+        Dim dt As New DataTable()
+        
+        Using conn As New SqlConnection(_sqlConnectionString)
+            Dim cmd As New SqlCommand("SELECT PalletID, PackOrderNo, ScanTime FROM ShipmentTracking WHERE ShipmentID = @ShipmentID ORDER BY PalletID", conn)
+            cmd.Parameters.AddWithValue("@ShipmentID", shipmentId)
             
-            <div class="pallet-section">
-                <h2>Loaded Pallets</h2>
-                <asp:GridView ID="gvLoadedPallets" runat="server" CssClass="pallet-grid" AutoGenerateColumns="False">
-                    <Columns>
-                        <asp:BoundField DataField="PalletID" HeaderText="Pallet #" />
-                        <asp:BoundField DataField="PackOrderNo" HeaderText="Pack Order" />
-                        <asp:BoundField DataField="ScanTime" HeaderText="Scan Time" DataFormatString="{0:MM/dd/yyyy HH:mm:ss}" />
-                    </Columns>
-                </asp:GridView>
-            </div>
+            Try
+                conn.Open()
+                Using reader As SqlDataReader = cmd.ExecuteReader()
+                    dt.Load(reader)
+                End Using
+            Catch ex As Exception
+                Throw New Exception("Error getting scanned pallets: " & ex.Message, ex)
+            End Try
+        End Using
+        
+        Return dt
+    End Function
 
-            <div class="pallet-section">
-                <h2>Remaining Pallets</h2>
-                <asp:GridView ID="gvRemainingPallets" runat="server" CssClass="pallet-grid" AutoGenerateColumns="False">
-                    <Columns>
-                        <asp:BoundField DataField="PalletID" HeaderText="Pallet #" />
-                    </Columns>
-                </asp:GridView>
-            </div>
+    Public Overridable Function GetTotalPalletsForShipment(ByVal shipmentId As String) As Integer
+        Using conn As New OracleConnection(_oracleConnectionString)
+            Dim cmd As New OracleCommand("SELECT TOTALPALLETS FROM SHIPMENTTRACKING WHERE BAY = :ShipmentID AND ACTIVE = '1'", conn)
+            cmd.Parameters.Add(New OracleParameter("ShipmentID", shipmentId))
+            
+            Try
+                conn.Open()
+                Dim result As Object = cmd.ExecuteScalar()
+                If result IsNot Nothing AndAlso Not IsDBNull(result) Then
+                    Return Convert.ToInt32(result)
+                End If
+                Return 0
+            Catch ex As Exception
+                Throw New Exception("Error getting total pallets: " & ex.Message, ex)
+            End Try
+        End Using
+    End Function
+End Class
 
-            <div class="summary-section">
-                <asp:Label ID="lblSummary" runat="server" CssClass="summary-text" />
-            </div>
+'web config and PalletDetails
+<appSettings>
+    <!-- Other settings -->
+    <add key="UseTestData" value="True"/>
+</appSettings>
 
-            <div class="navigation-section">
-                <asp:HyperLink ID="hlBack" runat="server" NavigateUrl="Default.aspx" CssClass="BackButton">Back to Shipping Dock</asp:HyperLink>
-            </div>
-        </div>
-    </form>
-</body>
-</html>
-
-'PalletDetails.aspx.vb
 Partial Class PalletDetails
     Inherits System.Web.UI.Page
 
-    Private ReadOnly _palletTrackingDAL As New PalletTrackingDAL()
+    Private _palletTrackingDAL As PalletTrackingDAL
 
-    Protected Sub Page_Load(ByVal sender As Object, ByVal e As EventArgs) Handles Me.Load
-        If Not IsPostBack Then
-            Try
-                LoadPalletData()
-            Catch ex As Exception
-                ' Log the error
-                Response.Write("An error occurred while loading pallet data. Please try refreshing the page.")
-            End Try
+    Protected Sub Page_Init(ByVal sender As Object, ByVal e As System.EventArgs) Handles Me.Init
+        ' Check if we should use test data
+        If ConfigurationManager.AppSettings("UseTestData") = "True" Then
+            _palletTrackingDAL = New TestPalletTrackingDAL()
+        Else
+            _palletTrackingDAL = New PalletTrackingDAL()
         End If
     End Sub
 
-    Private Sub LoadPalletData()
-        Dim shipmentId As String = Request.QueryString("ShipmentID")
-        
-        If String.IsNullOrEmpty(shipmentId) Then
-            Throw New ArgumentException("Shipment ID is required")
-        End If
-
-        lblBayNumber.Text = shipmentId
-
-        ' Get total pallets for this shipment
-        Dim totalPallets As Integer = _palletTrackingDAL.GetTotalPalletsForShipment(shipmentId)
-        
-        ' Get scanned pallets
-        Dim dtScanned As DataTable = _palletTrackingDAL.GetScannedPallets(shipmentId)
-        
-        ' Bind scanned pallets
-        gvLoadedPallets.DataSource = dtScanned
-        gvLoadedPallets.DataBind()
-
-        ' Create list of remaining pallets
-        Dim dtRemaining As New DataTable()
-        dtRemaining.Columns.Add("PalletID", GetType(String))
-
-        ' Get list of scanned pallet IDs
-        Dim scannedPallets As New HashSet(Of String)
-        For Each row As DataRow In dtScanned.Rows
-            scannedPallets.Add(row("PalletID").ToString())
-        Next
-
-        ' Add unscanned pallet numbers to remaining pallets
-        For i As Integer = 1 To totalPallets
-            Dim palletId As String = i.ToString("00")
-            If Not scannedPallets.Contains(palletId) Then
-                dtRemaining.Rows.Add(palletId)
-            End If
-        Next
-
-        ' Bind remaining pallets
-        gvRemainingPallets.DataSource = dtRemaining
-        gvRemainingPallets.DataBind()
-
-        ' Update summary
-        lblSummary.Text = String.Format("Progress: {0} of {1} pallets loaded", _
-                                      dtScanned.Rows.Count, _
-                                      totalPallets)
-    End Sub
+    ' Rest of your code remains the same...
 End Class
+
+
