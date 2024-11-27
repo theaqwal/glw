@@ -1,107 +1,101 @@
-.pallet-details-container {
-    padding: 30px;
-    font-family: Verdana;
+/* Make container specific to our page */
+#cphBody_gvLoadedPallets,
+#cphBody_gvRemainingPallets {
+    width: 100% !important;
+    border-collapse: collapse !important;
+    margin: 20px 0 !important;
+    font-size: 24px !important;
+    border: 2px solid #00008B !important;
 }
 
-.bay-header {
-    color: #00008B;
-    font-size: 55px;
-    font-weight: bold;
-    margin-bottom: 30px;
-}
-
-.section-header {
-    color: #00008B;
-    font-size: 40px;
-    font-weight: bold;
-    margin: 25px 0 15px 0;
-}
-
-.pallet-grid {
-    width: 100%;
-    border-collapse: collapse;
-    margin: 20px 0;
-    font-size: 24px;
-}
-
-.grid-header {
-    background-color: #00008B;
-    color: white;
-    padding: 15px;
-    text-align: left;
-    font-weight: bold;
-}
-
-.pallet-number, .pack-order, .scan-time {
-    padding: 12px 15px;
-    border-bottom: 1px solid #ddd;
-}
-
-.pallet-number {
-    font-weight: bold;
-    color: #00008B;
-}
-
-.progress-text {
-    font-size: 30px;
-    color: #00008B;
-    font-weight: bold;
-    display: block;
-    margin: 25px 0;
-}
-
-.back-button {
-    display: inline-block;
-    background-color: #009225;
+/* Header cells */
+#cphBody_gvLoadedPallets th,
+#cphBody_gvRemainingPallets th {
+    background-color: #00008B !important;
     color: white !important;
-    padding: 15px 30px;
-    font-size: 24px;
-    font-weight: bold;
-    text-decoration: none;
-    border-radius: 8px;
-    margin-top: 30px;
-    transition: all 0.3s ease;
+    padding: 15px !important;
+    text-align: left !important;
+    font-weight: bold !important;
+    font-size: 24px !important;
+    font-family: verdana !important;
 }
 
-.back-button:hover {
-    background-color: #00A828;
-    transform: scale(1.02);
-    box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+/* Data cells */
+#cphBody_gvLoadedPallets td,
+#cphBody_gvRemainingPallets td {
+    padding: 12px 15px !important;
+    border-bottom: 1px solid #ddd !important;
+    font-size: 24px !important;
+    font-family: verdana !important;
+    color: #00008B !important;
 }
 
-/* Alternating row colors */
-.pallet-grid tr:nth-child(even) {
-    background-color: #f9f9f9;
+/* Back button */
+#cphBody_hlBack {
+    display: inline-block !important;
+    background-color: #009225 !important;
+    color: white !important;
+    padding: 15px 30px !important;
+    font-size: 24px !important;
+    font-weight: bold !important;
+    text-decoration: none !important;
+    border-radius: 8px !important;
+    margin-top: 30px !important;
+    margin-bottom: 30px !important;
+    font-family: verdana !important;
 }
 
-.pallet-grid tr:hover {
-    background-color: #f0f0f0;
+#cphBody_hlBack:hover {
+    background-color: #00A828 !important;
 }
 
-/* Summary section styling */
-.summary-section {
-    margin: 30px 0;
-    padding: 20px;
-    background-color: #f5f5f5;
-    border-radius: 8px;
+/* Headers */
+.pallet-details-container h1 {
+    color: #00008B !important;
+    font-size: 55px !important;
+    font-weight: bold !important;
+    margin-bottom: 30px !important;
+    font-family: verdana !important;
 }
 
-/* Responsive adjustments */
-@media (max-width: 768px) {
-    .bay-header {
-        font-size: 40px;
-    }
-    
-    .section-header {
-        font-size: 30px;
-    }
-    
-    .pallet-grid {
-        font-size: 18px;
-    }
-    
-    .back-button {
-        font-size: 18px;
-        padding: 12px 24px;
-    }
+.pallet-details-container h2 {
+    color: #00008B !important;
+    font-size: 40px !important;
+    font-weight: bold !important;
+    margin: 25px 0 15px 0 !important;
+    font-family: verdana !important;
+}
+
+/* Alternating rows */
+#cphBody_gvLoadedPallets tr:nth-child(even),
+#cphBody_gvRemainingPallets tr:nth-child(even) {
+    background-color: #f9f9f9 !important;
+}
+
+#cphBody_gvLoadedPallets tr:hover,
+#cphBody_gvRemainingPallets tr:hover {
+    background-color: #f0f0f0 !important;
+}
+
+/* Summary text */
+#cphBody_lblSummary {
+    display: block !important;
+    font-size: 30px !important;
+    color: #00008B !important;
+    font-weight: bold !important;
+    margin: 25px 0 !important;
+    font-family: verdana !important;
+}
+
+.pallet-details-container {
+    padding: 30px !important;
+    font-family: verdana !important;
+}
+
+/* Progress text specific styling */
+.progress-text {
+    font-size: 30px !important;
+    color: #00008B !important;
+    font-weight: bold !important;
+    font-family: verdana !important;
 }
