@@ -1,101 +1,105 @@
-/* Make container specific to our page */
-#cphBody_gvLoadedPallets,
-#cphBody_gvRemainingPallets {
-    width: 100% !important;
-    border-collapse: collapse !important;
-    margin: 20px 0 !important;
-    font-size: 24px !important;
-    border: 2px solid #00008B !important;
-}
+<%@ Page Language="VB" MasterPageFile="~/FullScreen.master" AutoEventWireup="true" CodeFile="PalletDetails.aspx.vb" Inherits="PalletDetails" Title="Pallet Details" %>
 
-/* Header cells */
-#cphBody_gvLoadedPallets th,
-#cphBody_gvRemainingPallets th {
-    background-color: #00008B !important;
-    color: white !important;
-    padding: 15px !important;
-    text-align: left !important;
-    font-weight: bold !important;
-    font-size: 24px !important;
-    font-family: verdana !important;
-}
+<asp:Content ID="Content1" ContentPlaceHolderID="cphBody" runat="Server">
+    <style type="text/css">
+        /* Embedded styles will have higher priority */
+        body {
+            font-family: verdana;
+            font-weight: bold;
+            font-size: xx-small;
+            color: black;
+            background-color: #ffffff;
+        }
 
-/* Data cells */
-#cphBody_gvLoadedPallets td,
-#cphBody_gvRemainingPallets td {
-    padding: 12px 15px !important;
-    border-bottom: 1px solid #ddd !important;
-    font-size: 24px !important;
-    font-family: verdana !important;
-    color: #00008B !important;
-}
+        .shipment-title {
+            font-size: 55px;
+            color: #00008B;
+            font-weight: bold;
+            margin-bottom: 20px;
+        }
 
-/* Back button */
-#cphBody_hlBack {
-    display: inline-block !important;
-    background-color: #009225 !important;
-    color: white !important;
-    padding: 15px 30px !important;
-    font-size: 24px !important;
-    font-weight: bold !important;
-    text-decoration: none !important;
-    border-radius: 8px !important;
-    margin-top: 30px !important;
-    margin-bottom: 30px !important;
-    font-family: verdana !important;
-}
+        .section-title {
+            font-size: 40px;
+            color: #00008B;
+            margin-top: 20px;
+        }
 
-#cphBody_hlBack:hover {
-    background-color: #00A828 !important;
-}
+        .pallet-grid {
+            width: 100%;
+            border: 2px solid #00008B;
+            margin: 10px 0;
+        }
 
-/* Headers */
-.pallet-details-container h1 {
-    color: #00008B !important;
-    font-size: 55px !important;
-    font-weight: bold !important;
-    margin-bottom: 30px !important;
-    font-family: verdana !important;
-}
+        .pallet-grid th {
+            background-color: #00008B;
+            color: white;
+            padding: 10px;
+            font-size: 24px;
+            text-align: left;
+        }
 
-.pallet-details-container h2 {
-    color: #00008B !important;
-    font-size: 40px !important;
-    font-weight: bold !important;
-    margin: 25px 0 15px 0 !important;
-    font-family: verdana !important;
-}
+        .pallet-grid td {
+            padding: 8px;
+            font-size: 24px;
+            border-bottom: 1px solid #ddd;
+        }
 
-/* Alternating rows */
-#cphBody_gvLoadedPallets tr:nth-child(even),
-#cphBody_gvRemainingPallets tr:nth-child(even) {
-    background-color: #f9f9f9 !important;
-}
+        .pallet-grid tr:nth-child(even) {
+            background-color: #f5f5f5;
+        }
 
-#cphBody_gvLoadedPallets tr:hover,
-#cphBody_gvRemainingPallets tr:hover {
-    background-color: #f0f0f0 !important;
-}
+        .back-link {
+            display: inline-block;
+            background-color: #009225;
+            color: white;
+            padding: 15px 30px;
+            font-size: 24px;
+            text-decoration: none;
+            border-radius: 8px;
+            margin-top: 20px;
+        }
 
-/* Summary text */
-#cphBody_lblSummary {
-    display: block !important;
-    font-size: 30px !important;
-    color: #00008B !important;
-    font-weight: bold !important;
-    margin: 25px 0 !important;
-    font-family: verdana !important;
-}
+        .back-link:hover {
+            background-color: #00A828;
+        }
 
-.pallet-details-container {
-    padding: 30px !important;
-    font-family: verdana !important;
-}
+        .summary-text {
+            font-size: 30px;
+            color: #00008B;
+            margin: 20px 0;
+            display: block;
+        }
+    </style>
 
-/* Progress text specific styling */
-.progress-text {
-    font-size: 30px !important;
-    color: #00008B !important;
-    font-weight: bold !important;
-    font-family: verdana !important;
-}
+    <div style="padding: 20px;">
+        <div class="shipment-title">
+            Shipment Details - Bay <asp:Label ID="lblBayNumber" runat="server" />
+        </div>
+        
+        <div class="section-title">Loaded Pallets</div>
+        <asp:GridView ID="gvLoadedPallets" runat="server" CssClass="pallet-grid" 
+                     AutoGenerateColumns="False" GridLines="None">
+            <Columns>
+                <asp:BoundField DataField="PalletID" HeaderText="Pallet #" />
+                <asp:BoundField DataField="PackOrderNo" HeaderText="Pack Order" />
+                <asp:BoundField DataField="ScanTime" HeaderText="Scan Time" 
+                              DataFormatString="{0:MM/dd/yyyy HH:mm:ss}" />
+            </Columns>
+        </asp:GridView>
+
+        <div class="section-title">Remaining Pallets</div>
+        <asp:GridView ID="gvRemainingPallets" runat="server" CssClass="pallet-grid" 
+                     AutoGenerateColumns="False" GridLines="None">
+            <Columns>
+                <asp:BoundField DataField="PalletID" HeaderText="Pallet #" />
+            </Columns>
+        </asp:GridView>
+
+        <asp:Label ID="lblSummary" runat="server" CssClass="summary-text" />
+
+        <div>
+            <asp:HyperLink ID="hlBack" runat="server" NavigateUrl="Default.aspx" 
+                          CssClass="back-link">← Back to Shipping Dock</asp:HyperLink>
+        </div>
+    </div>
+</asp:Content>
