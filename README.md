@@ -1,100 +1,43 @@
+<%@ Page Language="VB" MasterPageFile="~/FullScreen.master" AutoEventWireup="true" CodeFile="PalletDetails.aspx.vb" Inherits="PalletDetails" Title="Pallet Details" %>
 
-Private Sub GetBays()
-    Try
-        ' Your existing variable declarations...
+<asp:Content ID="Content1" ContentPlaceHolderID="cphBody" runat="Server">
+    <div class="pallet-details-container">
+        <h1 class="bay-header">Shipment Details - Bay <asp:Label ID="lblBayNumber" runat="server" /></h1>
+        
+        <div class="pallet-section">
+            <h2 class="section-header">Loaded Pallets</h2>
+            <asp:GridView ID="gvLoadedPallets" runat="server" CssClass="pallet-grid" 
+                         AutoGenerateColumns="False" GridLines="None">
+                <Columns>
+                    <asp:BoundField DataField="PalletID" HeaderText="Pallet #" 
+                        ItemStyle-CssClass="pallet-number" HeaderStyle-CssClass="grid-header" />
+                    <asp:BoundField DataField="PackOrderNo" HeaderText="Pack Order" 
+                        ItemStyle-CssClass="pack-order" HeaderStyle-CssClass="grid-header" />
+                    <asp:BoundField DataField="ScanTime" HeaderText="Scan Time" 
+                        DataFormatString="{0:MM/dd/yyyy HH:mm:ss}"
+                        ItemStyle-CssClass="scan-time" HeaderStyle-CssClass="grid-header" />
+                </Columns>
+            </asp:GridView>
+        </div>
 
-        For Each drBay In dtBay.Rows
-            ' Start the Bay row
-            BayRow = New TableRow
+        <div class="pallet-section">
+            <h2 class="section-header">Remaining Pallets</h2>
+            <asp:GridView ID="gvRemainingPallets" runat="server" CssClass="pallet-grid" 
+                         AutoGenerateColumns="False" GridLines="None">
+                <Columns>
+                    <asp:BoundField DataField="PalletID" HeaderText="Pallet #" 
+                        ItemStyle-CssClass="pallet-number" HeaderStyle-CssClass="grid-header" />
+                </Columns>
+            </asp:GridView>
+        </div>
 
-            ' Calculate completion percentage
-            If IsDBNull(drBay.Item("CARRIER")) Or IsDBNull(drBay.Item("TOTALPALLETS")) Or IsDBNull(drBay.Item("TOTALPALLETSLOADED")) Then
-                intCompletionPercentage = 0
-            ElseIf CInt(drBay.Item("TOTALPALLETS")) = 0 Then
-                intCompletionPercentage = 0
-            Else
-                intCompletionPercentage = CInt((CInt(drBay.Item("TOTALPALLETSLOADED")) / CInt(drBay.Item("TOTALPALLETS"))) * 100)
-            End If
+        <div class="summary-section">
+            <asp:Label ID="lblSummary" runat="server" CssClass="progress-text" />
+        </div>
 
-            ' Bay and Carrier Cell
-            BayCell = New TableCell
-            BayCell.CssClass = "BayCell"
-
-            If drBay.Item("BAY").ToString = "0" Then
-                BayCell.Text = "Ramp"
-            Else
-                BayCell.Text = "Bay " & drBay.Item("BAY").ToString
-            End If
-
-            If Not IsDBNull(drBay.Item("CARRIER")) Then
-                ' Add carrier name with line break
-                BayCell.Text += "<br/>" & drBay.Item("CARRIER").ToString
-                
-                ' Add view details button if active
-                If intCompletionPercentage > 0 Then
-                    BayCell.Text += "<br/><div class='view-details-container'>"
-                    BayCell.Text += "<a href='PalletDetails.aspx?ShipmentID=" & drBay.Item("BAY").ToString & "' "
-                    BayCell.Text += "class='view-details-button'>VIEW PALLET DETAILS &#x27A4;</a></div>"
-                End If
-            End If
-            BayRow.Cells.Add(BayCell)
-
-            ' Progress Bar Cell
-            BayCell = New TableCell
-            tblProgressBar = New Table
-            ProgressBarRow = New TableRow
-
-            ' Progress Bar Completed Cell
-            ProgressBarCell = New TableCell
-            ProgressBarCell.Width = (intCompletionPercentage * CInt(ConfigurationManager.AppSettings("ProgressBarWidthMultiplier"))).ToString
-
-            If Not IsDBNull(drBay.Item("CARRIER")) Then
-                ProgressBarCell.CssClass = "HighlightGreen"
-            Else
-                ProgressBarCell.CssClass = "HighlightWhite"
-            End If
-
-            If intCompletionPercentage >= 15 Then
-                ProgressBarCell.Text = intCompletionPercentage & "%"
-            End If
-            ProgressBarRow.Cells.Add(ProgressBarCell)
-
-            ' Progress Bar NOT Completed Cell
-            ProgressBarCell = New TableCell
-            ProgressBarCell.Width = ((100 - intCompletionPercentage) * CInt(ConfigurationManager.AppSettings("ProgressBarWidthMultiplier"))).ToString
-
-            If Not IsDBNull(drBay.Item("CARRIER")) Then
-                ProgressBarCell.CssClass = "HighlightRed"
-            Else
-                ProgressBarCell.CssClass = "HighlightWhite"
-                ProgressBarCell.Text = "Not in use"
-            End If
-            ProgressBarRow.Cells.Add(ProgressBarCell)
-
-            tblProgressBar.Rows.Add(ProgressBarRow)
-            BayCell.Controls.Add(tblProgressBar)
-            BayRow.Cells.Add(BayCell)
-
-            ' Pallet Information Cell
-            BayCell = New TableCell
-            BayCell.CssClass = "PalletCell"
-            If Not IsDBNull(drBay.Item("CARRIER")) Then
-                BayCell.Text = "Loaded:<br/>"
-                BayCell.Text += drBay.Item("TOTALPALLETSLOADED").ToString
-                BayCell.Text += " of "
-                BayCell.Text += drBay.Item("TOTALPALLETS").ToString
-            End If
-            BayRow.Cells.Add(BayCell)
-
-            ' Add the completed Bay row
-            tblBay.Rows.Add(BayRow)
-        Next
-
-    Catch ex As Exception
-        HandleError(ex)
-    Finally
-        cnShipmentTracking.Close()
-        dtShipmentTracking.Dispose()
-        dtBay.Dispose()
-    End Try
-End Sub
+        <div class="navigation-section">
+            <asp:HyperLink ID="hlBack" runat="server" NavigateUrl="Default.aspx" 
+                          CssClass="back-button">&#x2190; Back to Shipping Dock</asp:HyperLink>
+        </div>
+    </div>
+</asp:Content>
